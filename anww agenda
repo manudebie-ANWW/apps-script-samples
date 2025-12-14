@@ -1,0 +1,41 @@
+import requests
+from bs4 import BeautifulSoup
+import smtplib
+from email.mime.text import MIMEText
+from datetime import datetime
+
+# Configuratie
+URL = "https://anww.avos.be/activiteiten.php?print=1"
+SMTP_SERVER = "imap.one.com"
+SMTP_PORT = 587
+SMTP_USER = "PR@ANWW.BE"
+SMTP_PASS = "IkmailvoorPRANWW2023"
+TO_EMAIL = "emmanuel.debie@telenet.be"
+
+def fetch_activities():
+    response = requests.get(URL)
+    response.raise_for_status()
+    soup = BeautifulSoup(response.text, "html.parser")
+
+    # Zoek activiteiten (afhankelijk van de HTML structuur)
+    activiteiten = []
+    for item in soup.select("table tr")[:4]:  # eerste 4 rijen
+        activiteiten.append(item.get_text(strip=True))
+    return activiteiten
+
+def send_mail(activiteiten):
+    body = "Hier zijn de eerstvolgende 4 activiteiten:\n\n" + "\n".join(activiteiten)
+    msg = MIMEText(body)
+    msg["Subject"] = "Activiteitenoverzicht"
+    msg["From"] = SMTP_USER
+    msg["To"] = TO_EMAIL
+
+    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASS)
+        server.send_message(msg)
+
+if __name__ == "__main__":
+    activiteiten = fetch_activities()
+    send_mail(activiteiten)
+    print(f"Mail verstuurd op {datetime.now()}")
